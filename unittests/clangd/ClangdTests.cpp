@@ -7,6 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "Annotations.h"
 #include "ClangdLSPServer.h"
 #include "ClangdServer.h"
 #include "Matchers.h"
@@ -75,6 +76,39 @@ private:
   std::mutex Mutex;
   bool HadErrorInLastDiags = false;
   VFSTag LastVFSTag = VFSTag();
+};
+
+// For each file, record whether the last published diagnostics contained at
+// least one error.
+class MultipleErrorCHeckingDiagConsumer : public DiagnosticsConsumer {
+public:
+  void
+  onDiagnosticsReady(PathRef File,
+                     Tagged<std::vector<DiagWithFixIts>> Diagnostics) override {
+    bool HadError = diagsContainErrors(Diagnostics.Value);
+
+    std::lock_guard<std::mutex> Lock(Mutex);
+    LastDiagsHadError[File] = HadError;
+  }
+
+  bool contains(PathRef P) {
+    std::lock_guard<std::mutex> Lock(Mutex);
+    return LastDiagsHadError.find(P) != LastDiagsHadError.end();
+  }
+
+  bool lastHadError(PathRef P) {
+    std::lock_guard<std::mutex> Lock(Mutex);
+    return LastDiagsHadError[P];
+  }
+
+  void clear() {
+    std::lock_guard<std::mutex> Lock(Mutex);
+    LastDiagsHadError.clear();
+  }
+
+private:
+  std::mutex Mutex;
+  std::map<Path, bool> LastDiagsHadError;
 };
 
 /// Replaces all patterns of the form 0x123abc with spaces
@@ -411,6 +445,78 @@ int main() { return 0; }
   // Subsequent addDocument call should finish without errors too.
   Server.addDocument(FooCpp, SourceContents);
   EXPECT_FALSE(DiagConsumer.hadErrorInLastDiags());
+}
+
+// Test ClangdServer.reparseOpenedFiles.
+TEST_F(ClangdVFSTest, ReparseOpenedFiles) {
+  Annotations FooSource(R"cpp(
+#ifdef MACRO
+$one[[static void bob() {}]]
+#else
+$two[[static void bob() {}]]
+#endif
+
+int main () { bo^b (); return 0; }
+)cpp");
+
+  Annotations BarSource(R"cpp(
+#ifdef MACRO
+this is an error
+#endif
+)cpp");
+
+  Annotations BazSource(R"cpp(
+int hello;
+)cpp");
+
+  MockFSProvider FS;
+  MockCompilationDatabase CDB;
+  MultipleErrorCHeckingDiagConsumer DiagConsumer;
+  ClangdServer Server(CDB, DiagConsumer, FS,
+                      /*AsyncThreadsCount=*/0,
+                      /*StorePreamblesInMemory=*/true);
+
+  auto FooCpp = testPath("foo.cpp");
+  auto BarCpp = testPath("bar.cpp");
+  auto BazCpp = testPath("baz.cpp");
+
+  FS.Files[FooCpp] = "";
+  FS.Files[BarCpp] = "";
+  FS.Files[BazCpp] = "";
+
+  CDB.ExtraClangFlags = {"-DMACRO=1"};
+  Server.addDocument(FooCpp, FooSource.code());
+  Server.addDocument(BarCpp, BarSource.code());
+  Server.addDocument(BazCpp, BazSource.code());
+
+  EXPECT_TRUE(DiagConsumer.contains(FooCpp));
+  EXPECT_TRUE(DiagConsumer.contains(BarCpp));
+  EXPECT_TRUE(DiagConsumer.contains(BazCpp));
+  EXPECT_FALSE(DiagConsumer.lastHadError(FooCpp));
+  EXPECT_TRUE(DiagConsumer.lastHadError(BarCpp));
+  EXPECT_FALSE(DiagConsumer.lastHadError(BazCpp));
+
+  auto Locations = runFindDefinitions(Server, FooCpp, FooSource.point());
+  EXPECT_TRUE(bool(Locations));
+  EXPECT_THAT(Locations->Value, ElementsAre(Location{URIForFile{FooCpp},
+                                                     FooSource.range("one")}));
+
+  // Undefine MACRO, close baz.cpp.
+  CDB.ExtraClangFlags.clear();
+  DiagConsumer.clear();
+  Server.removeDocument(BazCpp);
+  Server.reparseOpenedFiles();
+
+  EXPECT_TRUE(DiagConsumer.contains(FooCpp));
+  EXPECT_TRUE(DiagConsumer.contains(BarCpp));
+  EXPECT_FALSE(DiagConsumer.contains(BazCpp));
+  EXPECT_FALSE(DiagConsumer.lastHadError(FooCpp));
+  EXPECT_FALSE(DiagConsumer.lastHadError(BarCpp));
+
+  Locations = runFindDefinitions(Server, FooCpp, FooSource.point());
+  EXPECT_TRUE(bool(Locations));
+  EXPECT_THAT(Locations->Value, ElementsAre(Location{URIForFile{FooCpp},
+                                                     FooSource.range("two")}));
 }
 
 TEST_F(ClangdVFSTest, MemoryUsage) {

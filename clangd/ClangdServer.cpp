@@ -556,6 +556,11 @@ void ClangdServer::scheduleReparseAndDiags(
                        std::move(Callback));
 }
 
+void ClangdServer::reparseOpenedFiles() {
+  for (const Path &FilePath : DraftMgr.getActiveFiles())
+    forceReparse(FilePath);
+}
+
 void ClangdServer::onFileEvent(const DidChangeWatchedFilesParams &Params) {
   // FIXME: Do nothing for now. This will be used for indexing and potentially
   // invalidating other caches.
