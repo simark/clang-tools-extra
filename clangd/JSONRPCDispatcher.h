@@ -30,14 +30,17 @@ class JSONOutput : public Logger {
   // JSONOutput now that we pass Context everywhere.
 public:
   JSONOutput(llvm::raw_ostream &Outs, llvm::raw_ostream &Logs,
-             llvm::raw_ostream *InputMirror = nullptr, bool Pretty = false)
-      : Pretty(Pretty), Outs(Outs), Logs(Logs), InputMirror(InputMirror) {}
+             llvm::raw_ostream *InputMirror = nullptr, bool Pretty = false,
+             bool Verbose = false)
+      : Pretty(Pretty), Verbose(Verbose), Outs(Outs), Logs(Logs),
+        InputMirror(InputMirror) {}
 
   /// Emit a JSONRPC message.
   void writeMessage(const json::Expr &Result);
 
   /// Write a line to the logging stream.
   void log(const Twine &Message) override;
+  void vlog(const Twine &Message) override;
 
   /// Mirror \p Message into InputMirror stream. Does nothing if InputMirror is
   /// null.
@@ -46,6 +49,9 @@ public:
 
   // Whether output should be pretty-printed.
   const bool Pretty;
+
+  /// Whether we should log verbosely.
+  const bool Verbose;
 
 private:
   llvm::raw_ostream &Outs;
@@ -70,7 +76,7 @@ void call(llvm::StringRef Method, json::Expr &&Params);
 class JSONRPCDispatcher {
 public:
   // A handler responds to requests for a particular method name.
-  using Handler = std::function<void(const json::Expr &)>;
+  using Handler = std::function<void(StringRef Method, const json::Expr &)>;
 
   /// Create a new JSONRPCDispatcher. UnknownHandler is called when an unknown
   /// method is received.

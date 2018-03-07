@@ -406,8 +406,11 @@ bool ClangdLSPServer::run(std::istream &In, JSONStreamStyle InputStyle) {
   assert(!IsDone && "Run was called before");
 
   // Set up JSONRPCDispatcher.
-  JSONRPCDispatcher Dispatcher([](const json::Expr &Params) {
-    replyError(ErrorCode::MethodNotFound, "method not found");
+  JSONRPCDispatcher Dispatcher([](StringRef Method, const json::Expr &Params) {
+    std::string Message;
+    llvm::raw_string_ostream OS(Message);
+    OS << "method not found (" << Method << ")";
+    replyError(ErrorCode::MethodNotFound, OS.str());
   });
   registerCallbackHandlers(Dispatcher, /*Callbacks=*/*this);
 

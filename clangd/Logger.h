@@ -15,24 +15,28 @@
 namespace clang {
 namespace clangd {
 
-/// Main logging function.
+/// Main logging functions.
 /// Logs messages to a global logger, which can be set up by LoggingSesssion.
 /// If no logger is registered, writes to llvm::errs().
 void log(const llvm::Twine &Message);
+
+/// Same as the above, but for verbose messages.
+void vlog(const llvm::Twine &Message);
 
 /// Interface to allow custom logging in clangd.
 class Logger {
 public:
   virtual ~Logger() = default;
 
-  /// Implementations of this method must be thread-safe.
+  /// Implementations of these methods must be thread-safe.
   virtual void log(const llvm::Twine &Message) = 0;
+  virtual void vlog(const llvm::Twine &Message) = 0;
 };
 
 /// Only one LoggingSession can be active at a time.
 class LoggingSession {
 public:
-  LoggingSession(clangd::Logger &Instance);
+  LoggingSession(clangd::Logger &Instance, bool Verbose);
   ~LoggingSession();
 
   LoggingSession(LoggingSession &&) = delete;

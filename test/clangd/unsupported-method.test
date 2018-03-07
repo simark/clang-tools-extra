@@ -6,7 +6,7 @@
 {"jsonrpc":"2.0","id":1,"method":"textDocument/jumpInTheAirLikeYouJustDontCare","params":{}}
 #      CHECK:  "error": {
 # CHECK-NEXT:    "code": -32601,
-# CHECK-NEXT:    "message": "method not found"
+# CHECK-NEXT:    "message": "method not found (textDocument/jumpInTheAirLikeYouJustDontCare)"
 # CHECK-NEXT:  },
 # CHECK-NEXT:  "id": 1,
 # CHECK-NEXT:  "jsonrpc": "2.0"

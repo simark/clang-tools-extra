@@ -76,6 +76,9 @@ static llvm::cl::opt<JSONStreamStyle> InputStyle(
                    "messages delimited by --- lines, with # comment support")),
     llvm::cl::init(JSONStreamStyle::Standard));
 
+static llvm::cl::opt<bool> Verbose("v", llvm::cl::desc("Be more verbose"),
+                                   llvm::cl::init(false));
+
 static llvm::cl::opt<bool>
     PrettyPrint("pretty", llvm::cl::desc("Pretty-print JSON output"),
                 llvm::cl::init(false));
@@ -190,9 +193,9 @@ int main(int argc, char *argv[]) {
 
   JSONOutput Out(llvm::outs(), llvm::errs(),
                  InputMirrorStream ? InputMirrorStream.getPointer() : nullptr,
-                 PrettyPrint);
+                 PrettyPrint, Verbose);
 
-  clangd::LoggingSession LoggingSession(Out);
+  clangd::LoggingSession LoggingSession(Out, Verbose);
 
   // If --compile-commands-dir arg was invoked, check value and override default
   // path.

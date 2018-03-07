@@ -66,7 +66,7 @@ void JSONOutput::writeMessage(const json::Expr &Message) {
     Outs << "Content-Length: " << S.size() << "\r\n\r\n" << S;
     Outs.flush();
   }
-  log(llvm::Twine("--> ") + S);
+  vlog(llvm::Twine("--> ") + S);
 }
 
 void JSONOutput::log(const Twine &Message) {
@@ -75,6 +75,11 @@ void JSONOutput::log(const Twine &Message) {
   std::lock_guard<std::mutex> Guard(StreamMutex);
   Logs << llvm::formatv("[{0:%H:%M:%S.%L}] {1}\n", Timestamp, Message);
   Logs.flush();
+}
+
+void JSONOutput::vlog(const Twine &Message) {
+  if (Verbose)
+    log(Message);
 }
 
 void JSONOutput::mirrorInput(const Twine &Message) {
@@ -176,7 +181,7 @@ bool JSONRPCDispatcher::call(const json::Expr &Message, JSONOutput &Out) const {
 
   // Stash a reference to the span args, so later calls can add metadata.
   WithContext WithRequestSpan(RequestSpan::stash(Tracer));
-  Handler(std::move(Params));
+  Handler(*Method, std::move(Params));
   return true;
 }
 
@@ -306,7 +311,7 @@ void clangd::runLanguageServerLoop(std::istream &In, JSONOutput &Out,
     if (auto JSON = ReadMessage(In, Out)) {
       if (auto Doc = json::parse(*JSON)) {
         // Log the formatted message.
-        log(llvm::formatv(Out.Pretty ? "<-- {0:2}\n" : "<-- {0}\n", *Doc));
+        vlog(llvm::formatv(Out.Pretty ? "<-- {0:2}\n" : "<-- {0}\n", *Doc));
         // Finally, execute the action for this JSON message.
         if (!Dispatcher.call(*Doc, Out))
           log("JSON dispatch failed!\n");
