@@ -11,6 +11,7 @@
 #define LLVM_CLANG_TOOLS_EXTRA_CLANGD_DRAFTSTORE_H
 
 #include "Path.h"
+#include "Protocol.h"
 #include "clang/Basic/LLVM.h"
 #include "llvm/ADT/StringMap.h"
 #include <mutex>
@@ -32,7 +33,13 @@ public:
   std::vector<Path> getActiveFiles() const;
 
   /// Replace contents of the draft for \p File with \p Contents.
-  void updateDraft(PathRef File, StringRef Contents);
+  void addDraft(PathRef File, StringRef Contents);
+
+  /// Update the contents of the draft for \p File based on \p Changes.
+  /// \return The new version of the draft for \p File.
+  llvm::Expected<std::string>
+  updateDraft(PathRef File,
+              llvm::ArrayRef<TextDocumentContentChangeEvent> Changes);
 
   /// Remove the draft from the store.
   void removeDraft(PathRef File);
