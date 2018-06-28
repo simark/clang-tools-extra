@@ -185,11 +185,19 @@ std::vector<TextEdit> replacementsToEdits(StringRef Code,
   return Edits;
 }
 
-llvm::Optional<std::string>
-getAbsoluteFilePath(const FileEntry *F, const SourceManager &SourceMgr) {
+llvm::Optional<std::string> getAbsoluteFilePath(const FileEntry *F,
+                                                const SourceManager &SourceMgr,
+                                                const vfs::FileSystem &VFS) {
+  // Try to get the real path from the FileEntry object, if it was computed.
   SmallString<64> FilePath = F->tryGetRealPathName();
-  if (FilePath.empty())
-    FilePath = F->getName();
+  if (FilePath.empty()) {
+    // Otherwise, ask the VFS to compute it.
+    if (VFS.getRealPath(F->getName(), FilePath) != std::error_code()) {
+      // Otherwise, fall back on the original name.
+      FilePath = F->getName();
+    }
+  }
+
   if (!llvm::sys::path::is_absolute(FilePath)) {
     if (!SourceMgr.getFileManager().makeAbsolutePath(FilePath)) {
       log("Could not turn relative path to absolute: " + FilePath);

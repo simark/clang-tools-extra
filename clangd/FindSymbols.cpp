@@ -195,7 +195,8 @@ public:
     const FileEntry *F = SM.getFileEntryForID(SM.getMainFileID());
     if (!F)
       return;
-    auto FilePath = getAbsoluteFilePath(F, SM);
+    auto FilePath = getAbsoluteFilePath(
+        F, SM, *AST.getSourceManager().getFileManager().getVirtualFileSystem());
     if (FilePath)
       MainFileUri = URIForFile(*FilePath);
   }

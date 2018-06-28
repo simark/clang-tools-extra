@@ -15,6 +15,7 @@
 #define LLVM_CLANG_TOOLS_EXTRA_CLANGD_SOURCECODE_H
 #include "Protocol.h"
 #include "clang/Basic/SourceLocation.h"
+#include "clang/Basic/VirtualFileSystem.h"
 #include "clang/Tooling/Core/Replacement.h"
 
 namespace clang {
@@ -63,7 +64,8 @@ std::vector<TextEdit> replacementsToEdits(StringRef Code,
 
 /// Get the absolute file path of a given file entry.
 llvm::Optional<std::string> getAbsoluteFilePath(const FileEntry *F,
-                                                const SourceManager &SourceMgr);
+                                                const SourceManager &SourceMgr,
+                                                const vfs::FileSystem &VFS);
 } // namespace clangd
 } // namespace clang
 #endif
