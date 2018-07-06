@@ -40,14 +40,17 @@ public:
 class MockCompilationDatabase : public GlobalCompilationDatabase {
 public:
   /// When \p UseRelPaths is true, uses relative paths in compile commands.
-  /// When \p UseRelPaths is false, uses absoulte paths.
-  MockCompilationDatabase(bool UseRelPaths = false);
+  /// When \p UseRelPaths is false, uses absolute paths.
+  MockCompilationDatabase(StringRef Directory = StringRef(), StringRef RelPathPrefix = StringRef());
 
   llvm::Optional<tooling::CompileCommand>
   getCompileCommand(PathRef File) const override;
 
   std::vector<std::string> ExtraClangFlags;
-  const bool UseRelPaths;
+
+private:
+  StringRef Directory;
+  StringRef RelPathPrefix;
 };
 
 // Returns an absolute (fake) test directory for this OS.
