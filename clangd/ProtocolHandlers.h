@@ -48,7 +48,7 @@ public:
   virtual void onSignatureHelp(TextDocumentPositionParams &Params) = 0;
   virtual void onGoToDefinition(TextDocumentPositionParams &Params) = 0;
   virtual void onSwitchSourceHeader(TextDocumentIdentifier &Params) = 0;
-  virtual void onFileEvent(DidChangeWatchedFilesParams &Params) = 0;
+  virtual void onDidChangeWatchedFiles(DidChangeWatchedFilesParams &Params) = 0;
   virtual void onCommand(ExecuteCommandParams &Params) = 0;
   virtual void onWorkspaceSymbol(WorkspaceSymbolParams &Params) = 0;
   virtual void onRename(RenameParams &Parames) = 0;

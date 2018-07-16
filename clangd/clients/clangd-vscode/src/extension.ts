@@ -30,14 +30,18 @@ export function activate(context: vscode.ExtensionContext) {
     }
     const serverOptions: vscodelc.ServerOptions = clangd;
 
-    const filePattern: string = '**/*.{' +
+    const sourceFilePattern: string = '**/*.{' +
         ['cpp', 'c', 'cc', 'cxx', 'c++', 'm', 'mm', 'h', 'hh', 'hpp', 'hxx', 'inc'].join() + '}';
+    const compileCommandsFilePattern: string = '**/compile_commands.json';
     const clientOptions: vscodelc.LanguageClientOptions = {
         // Register the server for C/C++ files
-        documentSelector: [{ scheme: 'file', pattern: filePattern }],
+        documentSelector: [{ scheme: 'file', pattern: sourceFilePattern }],
         synchronize: !syncFileEvents ? undefined : {
-            fileEvents: vscode.workspace.createFileSystemWatcher(filePattern)
-        },
+        fileEvents : [
+          vscode.workspace.createFileSystemWatcher(sourceFilePattern),
+          vscode.workspace.createFileSystemWatcher(compileCommandsFilePattern),
+        ]
+      },
         // Resolve symlinks for all files provided by clangd.
         // This is a workaround for a bazel + clangd issue - bazel produces a symlink tree to build in,
         // and when navigating to the included file, clangd passes its path inside the symlink tree

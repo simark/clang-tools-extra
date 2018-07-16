@@ -178,8 +178,23 @@ void ClangdLSPServer::onDocumentDidChange(DidChangeTextDocumentParams &Params) {
   Server.addDocument(File, *Contents, WantDiags);
 }
 
-void ClangdLSPServer::onFileEvent(DidChangeWatchedFilesParams &Params) {
+void ClangdLSPServer::onDidChangeWatchedFiles(
+    DidChangeWatchedFilesParams &Params) {
   Server.onFileEvent(Params);
+
+  // Check if any created/modified/deleted file is called compile_commands.json.
+  bool CompileCommandsChanged = false;
+  for (const FileEvent &FE : Params.changes) {
+    StringRef FileName = llvm::sys::path::filename(FE.uri.file());
+    if (FileName == "compile_commands.json") {
+      CDB.fileChanged(FE.uri.file());
+      CompileCommandsChanged = true;
+    }
+  }
+
+  if (CompileCommandsChanged) {
+    reparseOpenedFiles();
+  }
 }
 
 void ClangdLSPServer::onCommand(ExecuteCommandParams &Params) {
@@ -574,6 +589,13 @@ void ClangdLSPServer::CompilationDB::invalidate(PathRef File) {
     static_cast<InMemoryCompilationDb *>(CDB.get())->invalidate(File);
   else
     CachingCDB->invalidate(File);
+}
+
+void ClangdLSPServer::CompilationDB::fileChanged(PathRef File) {
+  if (IsDirectoryBased) {
+    CachingCDB->invalidateAll();
+    static_cast<DirectoryBasedGlobalCompilationDatabase *>(CDB.get())->fileEvent(File);
+  }
 }
 
 bool ClangdLSPServer::CompilationDB::setCompilationCommandForFile(

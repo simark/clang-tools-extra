@@ -68,6 +68,11 @@ public:
   /// Sets the extra flags that should be added to a file.
   void setExtraFlagsForFile(PathRef File, std::vector<std::string> ExtraFlags);
 
+  /// Forget the compilation flags cached in this object.
+  void clear();
+
+  void fileEvent(PathRef File);
+
 private:
   tooling::CompilationDatabase *getCDBForFile(PathRef File) const;
   tooling::CompilationDatabase *getCDBInDirLocked(PathRef File) const;
@@ -102,6 +107,8 @@ public:
 
   /// Removes an entry for \p File if it's present in the cache.
   void invalidate(PathRef File);
+
+  void invalidateAll();
 
   /// Removes all cached compile commands.
   void clear();

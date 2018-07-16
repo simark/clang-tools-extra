@@ -66,6 +66,23 @@ void DirectoryBasedGlobalCompilationDatabase::setCompileCommandsDir(Path P) {
   CompilationDatabases.clear();
 }
 
+void DirectoryBasedGlobalCompilationDatabase::clear() {
+  std::lock_guard<std::mutex> Lock(Mutex);
+  CompilationDatabases.clear();
+}
+
+void DirectoryBasedGlobalCompilationDatabase::fileEvent(PathRef File)
+{
+  std::lock_guard<std::mutex> Lock(Mutex);
+
+  if (llvm::sys::path::filename(File) != "compile_commands.json")
+    return;
+
+  SmallString<256> Directory (File);
+  llvm::sys::path::remove_filename(Directory);
+  CompilationDatabases.erase(Directory);
+}
+
 void DirectoryBasedGlobalCompilationDatabase::setExtraFlagsForFile(
     PathRef File, std::vector<std::string> ExtraFlags) {
   std::lock_guard<std::mutex> Lock(Mutex);
@@ -145,6 +162,11 @@ CachingCompilationDb::getFallbackCommand(PathRef File) const {
 void CachingCompilationDb::invalidate(PathRef File) {
   std::unique_lock<std::mutex> Lock(Mut);
   Cached.erase(File);
+}
+
+void CachingCompilationDb::invalidateAll() {
+  std::unique_lock<std::mutex> Lock(Mut);
+  Cached.clear();
 }
 
 void CachingCompilationDb::clear() {

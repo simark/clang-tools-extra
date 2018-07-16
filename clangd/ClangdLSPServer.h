@@ -69,7 +69,7 @@ private:
   void onGoToDefinition(TextDocumentPositionParams &Params) override;
   void onSwitchSourceHeader(TextDocumentIdentifier &Params) override;
   void onDocumentHighlight(TextDocumentPositionParams &Params) override;
-  void onFileEvent(DidChangeWatchedFilesParams &Params) override;
+  void onDidChangeWatchedFiles(DidChangeWatchedFilesParams &Params) override;
   void onCommand(ExecuteCommandParams &Params) override;
   void onWorkspaceSymbol(WorkspaceSymbolParams &Params) override;
   void onRename(RenameParams &Parames) override;
@@ -110,6 +110,7 @@ private:
     makeDirectoryBased(llvm::Optional<Path> CompileCommandsDir);
 
     void invalidate(PathRef File);
+    void fileChanged(PathRef File);
 
     /// Sets the compilation command for a particular file.
     /// Only valid for in-memory CDB, no-op and error log on DirectoryBasedCDB.
