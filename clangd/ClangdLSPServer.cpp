@@ -446,6 +446,19 @@ void ClangdLSPServer::onHover(TextDocumentPositionParams &Params) {
                     });
 }
 
+void ClangdLSPServer::onTypeHierarchy(TextDocumentPositionParams &Params) {
+  Server->findTypeHierarchy(Params.textDocument.uri.file(), Params.position,
+                           [](llvm::Expected<llvm::Optional<TypeHierarchy>> H) {
+                             if (!H) {
+                               replyError(ErrorCode::InternalError,
+                                          llvm::toString(H.takeError()));
+                               return;
+                             }
+
+                             reply(*H);
+                           });
+}
+
 void ClangdLSPServer::applyConfiguration(
     const ClangdConfigurationParamsChange &Params) {
   // Per-file update to the compilation database.

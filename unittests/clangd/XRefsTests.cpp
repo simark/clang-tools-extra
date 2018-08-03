@@ -27,6 +27,7 @@ using namespace llvm;
 
 namespace {
 using testing::ElementsAre;
+using testing::Eq;
 using testing::Field;
 using testing::IsEmpty;
 using testing::Matcher;
@@ -1128,6 +1129,7 @@ TEST(GoToDefinition, WithPreamble) {
       ElementsAre(Location{FooCppUri, FooWithoutHeader.range()}));
 }
 
+<<<<<<< HEAD
 TEST(FindReferences, WithinAST) {
   const char *Tests[] = {
       R"cpp(// Local variable
@@ -1270,6 +1272,165 @@ TEST(FindReferences, NoQueryForLocalSymbols) {
       EXPECT_NE(Rec.RefIDs, llvm::None) << T.AnnotatedCode;
     else
       EXPECT_EQ(Rec.RefIDs, llvm::None) << T.AnnotatedCode;
+=======
+TEST(TypeHierarchy, SimpleInheritanceOnTypeOrVariable) {
+  Annotations Source(R"cpp(
+$ParentDef^struct Parent
+{
+  int a;
+};
+
+$Child1Def^struct Child1 : Parent
+{
+  int b;
+};
+
+struct Ch$p1^ild2 : Child1
+{
+  int c;
+};
+
+struct Child3 : Child2
+{
+  int d;
+};
+
+int main()
+{
+  Ch$p2^ild2 ch$p3^ild2;
+
+  parent.a = 1;
+  ch$p4^ild2.c = 1;
+}
+)cpp");
+
+  TestTU TU = TestTU::withCode(Source.code());
+  auto AST = TU.build();
+
+  llvm::Optional<TypeHierarchy> Result;
+
+  TypeHierarchy ExpectedResult{{TypeHierarchyResult{
+      "Child1",
+      Source.point("Child1Def"),
+      false,
+      {TypeHierarchyResult{"Parent", Source.point("ParentDef"), false, {}}}}}};
+
+  for (auto Pt : {"p1", "p2", "p3", "p4"}) {
+    Result = getTypeHierarchy(AST, Source.point(Pt));
+    ASSERT_TRUE(bool(Result));
+    EXPECT_THAT(*Result, Eq(ExpectedResult));
+  }
+}
+
+TEST(TypeHierarchy, MultipleInheritanceOnTypeOrVariable) {
+  Annotations Source(R"cpp(
+$Parent1Def^struct Parent1
+{
+  int a;
+};
+
+$Parent2Def^struct Parent2
+{
+  int b;
+};
+
+$Parent3Def^struct Parent3 : Parent2
+{
+  int c;
+};
+
+struct Ch$c1^ild : Parent1, Parent3
+{
+  int d;
+};
+
+int main()
+{
+  Ch$c2^ild  ch$c3^ild;
+
+  ch$c4^ild.a = 1;
+}
+)cpp");
+
+  TestTU TU = TestTU::withCode(Source.code());
+  auto AST = TU.build();
+
+  llvm::Optional<TypeHierarchy> Result;
+  TypeHierarchy ExpectedResult{{
+      TypeHierarchyResult{"Parent1", Source.point("Parent1Def"), false, {}},
+      TypeHierarchyResult{
+          "Parent3",
+          Source.point("Parent3Def"),
+          false,
+          {TypeHierarchyResult{
+              "Parent2", Source.point("Parent2Def"), false, {}}}},
+  }};
+
+  for (auto Pt : {"c1", "c2", "c3", "c4"}) {
+    Result = getTypeHierarchy(AST, Source.point(Pt));
+    ASSERT_TRUE(bool(Result));
+    EXPECT_THAT(*Result, Eq(ExpectedResult));
+  }
+}
+
+TEST(TypeHierarchy, OnMethod) {
+  Annotations Source(R"cpp(
+$ParentDef^struct Parent
+{
+  void method ();
+  void method () const;
+  void method (int x);
+  void method (char x);
+};
+
+$Child1Def^struct Child1 : Parent
+{
+  void method ();
+  void method (char x);
+};
+
+struct Child2 : Child1
+{
+  void met$p1^hod ();
+  void met$p2^hod (int x);
+};
+
+struct Child3 : Child2
+{
+  void method (int x);
+};
+)cpp");
+
+  TestTU TU = TestTU::withCode(Source.code());
+  auto AST = TU.build();
+
+  ASSERT_TRUE(AST.getDiagnostics().empty());
+
+  {
+    TypeHierarchy ExpectedResult{{TypeHierarchyResult{
+        "Child1",
+        Source.point("Child1Def"),
+        true,
+        {TypeHierarchyResult{"Parent", Source.point("ParentDef"), true, {}}}}}};
+
+    llvm::Optional<TypeHierarchy> Result =
+        getTypeHierarchy(AST, Source.point("p1"));
+    ASSERT_TRUE(bool(Result));
+    EXPECT_THAT(*Result, Eq(ExpectedResult));
+  }
+
+  {
+    TypeHierarchy ExpectedResult{{TypeHierarchyResult{
+        "Child1",
+        Source.point("Child1Def"),
+        false,
+        {TypeHierarchyResult{"Parent", Source.point("ParentDef"), true, {}}}}}};
+
+    llvm::Optional<TypeHierarchy> Result =
+        getTypeHierarchy(AST, Source.point("p2"));
+    ASSERT_TRUE(bool(Result));
+    EXPECT_THAT(*Result, Eq(ExpectedResult));
+>>>>>>> (WIP) Type hierarchy
   }
 }
 

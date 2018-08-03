@@ -896,6 +896,36 @@ struct ReferenceParams : public TextDocumentPositionParams {
 };
 bool fromJSON(const llvm::json::Value &, ReferenceParams &);
 
+struct TypeHierarchyResult {
+  std::string Name;
+  Position Pos;
+
+  // Does this node implement the method targeted by the request?
+  bool DeclaresMethod;
+
+  std::vector<TypeHierarchyResult> Parents;
+
+  friend bool operator==(const TypeHierarchyResult &lhs,
+                         const TypeHierarchyResult &rhs) {
+    return lhs.Name == rhs.Name && lhs.Pos == rhs.Pos &&
+           lhs.DeclaresMethod == rhs.DeclaresMethod &&
+           lhs.Parents == rhs.Parents;
+  }
+};
+
+llvm::raw_ostream &operator<<(llvm::raw_ostream &, const TypeHierarchyResult &);
+
+struct TypeHierarchy {
+  std::vector<TypeHierarchyResult> Parents;
+
+  friend bool operator==(const TypeHierarchy &lhs, const TypeHierarchy &rhs) {
+    return lhs.Parents == rhs.Parents;
+  }
+};
+
+llvm::json::Value toJSON(const TypeHierarchy &DH);
+llvm::raw_ostream &operator<<(llvm::raw_ostream &, const TypeHierarchy &);
+
 } // namespace clangd
 } // namespace clang
 

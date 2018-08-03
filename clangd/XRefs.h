@@ -38,6 +38,9 @@ llvm::Optional<Hover> getHover(ParsedAST &AST, Position Pos);
 std::vector<Location> findReferences(ParsedAST &AST, Position Pos,
                                      const SymbolIndex *Index = nullptr);
 
+/// Get the type hierarchy information at \p Pos.
+llvm::Optional<TypeHierarchy> getTypeHierarchy(ParsedAST &AST, Position Pos);
+
 } // namespace clangd
 } // namespace clang
 

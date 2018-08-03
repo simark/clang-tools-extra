@@ -652,6 +652,53 @@ llvm::raw_ostream &operator<<(llvm::raw_ostream &O,
   return O;
 }
 
+json::Value toJSON(const TypeHierarchyResult &THR) {
+  json::Object Result;
+
+  Result["name"] = THR.Name;
+  Result["position"] = toJSON(THR.Pos);
+  // FIXME: write the rest
+
+  return Result;
+}
+
+static llvm::raw_ostream &
+operator<<(llvm::raw_ostream &O, const std::vector<TypeHierarchyResult> &V) {
+  O << '{';
+
+  for (size_t i = 0; i < V.size(); i++) {
+    O << V[i];
+    if (i != 0) {
+      O << " ,";
+    }
+  }
+
+  O << '}';
+
+  return O;
+}
+
+llvm::raw_ostream &operator<<(llvm::raw_ostream &O,
+                              const TypeHierarchyResult &V) {
+  O << "{Name=" << V.Name << ", Pos=" << V.Pos
+    << ", DeclaresMethod=" << V.DeclaresMethod << ", Parents=" << V.Parents
+    << "}";
+  return O;
+}
+
+json::Value toJSON(const TypeHierarchy &TH) {
+  json::Object Result;
+
+  Result["parents"] = json::Array(TH.Parents);
+
+  return Result;
+}
+
+llvm::raw_ostream &operator<<(llvm::raw_ostream &O, const TypeHierarchy &V) {
+  O << "Parents=" << V.Parents;
+  return O;
+}
+
 bool fromJSON(const json::Value &Params, DidChangeConfigurationParams &CCP) {
   json::ObjectMapper O(Params);
   return O && O.map("settings", CCP.settings);

@@ -457,6 +457,18 @@ void ClangdServer::findHover(PathRef File, Position Pos,
   WorkScheduler.runWithAST("Hover", File, Bind(Action, std::move(CB)));
 }
 
+void ClangdServer::findTypeHierarchy(
+    PathRef File, Position Pos, Callback<llvm::Optional<TypeHierarchy>> CB) {
+  auto Action = [Pos](Callback<llvm::Optional<TypeHierarchy>> CB,
+                      llvm::Expected<InputsAndAST> InpAST) {
+    if (!InpAST)
+      return CB(InpAST.takeError());
+    CB(clangd::getTypeHierarchy(InpAST->AST, Pos));
+  };
+
+  WorkScheduler.runWithAST("Type Hierarchy", File, Bind(Action, std::move(CB)));
+}
+
 void ClangdServer::consumeDiagnostics(PathRef File, DocVersion Version,
                                       std::vector<Diag> Diags) {
   // We need to serialize access to resulting diagnostics to avoid calling

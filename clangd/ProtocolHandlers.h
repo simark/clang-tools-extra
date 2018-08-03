@@ -55,6 +55,7 @@ public:
   virtual void onRename(RenameParams &Parames) = 0;
   virtual void onDocumentHighlight(TextDocumentPositionParams &Params) = 0;
   virtual void onHover(TextDocumentPositionParams &Params) = 0;
+  virtual void onTypeHierarchy(TextDocumentPositionParams &Params) = 0;
   virtual void onChangeConfiguration(DidChangeConfigurationParams &Params) = 0;
 };
 

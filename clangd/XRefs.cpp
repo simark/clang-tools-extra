@@ -761,5 +761,81 @@ std::vector<Location> findReferences(ParsedAST &AST, Position Pos,
   return Results;
 }
 
+static bool MethodMatches(const CXXMethodDecl *Method,
+                          const CXXMethodDecl *Candidate) {
+  // FIXME: How do I determine if Method overrides Candidate?
+
+  return true;
+}
+
+static void getTypeHierarchyParents(const CXXRecordDecl *CXXRD,
+                                    const CXXMethodDecl *Method,
+                                    const SourceManager &SourceMgr,
+                                    std::vector<TypeHierarchyResult> *Result) {
+  for (auto It = CXXRD->bases_begin(); It != CXXRD->bases_end(); It++) {
+    const RecordType *ParentType =
+        It->getType().getTypePtr()->getAs<RecordType>();
+    if (!ParentType)
+      continue;
+
+    const CXXRecordDecl *ParentDecl = ParentType->getAsCXXRecordDecl();
+    if (!ParentDecl)
+      continue;
+
+    StringRef Name = ParentDecl->getName();
+    SourceLocation Loc = ParentDecl->getBeginLoc();
+    Position Pos = sourceLocToPosition(SourceMgr, Loc);
+    Result->emplace_back(TypeHierarchyResult{Name, Pos, false, {}});
+
+    for (const auto &CandidateMethod : ParentDecl->methods()) {
+      if (MethodMatches(Method, CandidateMethod)) {
+        Result->back().DeclaresMethod = true;
+        break;
+      }
+    }
+
+    getTypeHierarchyParents(ParentDecl, Method, SourceMgr,
+                            &Result->back().Parents);
+  }
+}
+
+static TypeHierarchy getTypeHierarchy(const CXXRecordDecl *CXXRD,
+                                      const CXXMethodDecl *Method,
+                                      const SourceManager &SourceMgr) {
+  TypeHierarchy Result;
+  getTypeHierarchyParents(CXXRD, Method, SourceMgr, &Result.Parents);
+  return Result;
+}
+
+Optional<TypeHierarchy> getTypeHierarchy(ParsedAST &AST, Position Pos) {
+  const SourceManager &SourceMgr = AST.getASTContext().getSourceManager();
+  SourceLocation SourceLocationBeg =
+      getBeginningOfIdentifier(AST, Pos, SourceMgr.getMainFileID());
+  // Identified symbols at a specific position.
+  auto Symbols = getSymbolAtPosition(AST, SourceLocationBeg);
+
+  if (Symbols.Decls.empty())
+    return {};
+
+  const Decl *D = Symbols.Decls[0].D;
+  const CXXRecordDecl *CXXRD;
+
+  const CXXMethodDecl *Method = dyn_cast<CXXMethodDecl>(D);
+  if (const VarDecl *VD = dyn_cast<VarDecl>(D)) {
+    // If this is a variable, use the type of the variable.
+    CXXRD = VD->getType().getTypePtr()->getAsCXXRecordDecl();
+  } else if (Method) {
+    // If this is a method, use the type of the class, but
+    CXXRD = Method->getParent();
+  } else {
+    CXXRD = dyn_cast<CXXRecordDecl>(D);
+  }
+
+  if (CXXRD)
+    return getTypeHierarchy(CXXRD, Method, SourceMgr);
+
+  return {};
+}
+
 } // namespace clangd
 } // namespace clang
