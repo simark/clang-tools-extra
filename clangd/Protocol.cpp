@@ -609,11 +609,22 @@ bool fromJSON(const llvm::json::Value &Params,
          O.map("compilationCommand", CDbUpdate.compilationCommand);
 }
 
-bool fromJSON(const json::Value &Params,
+bool fromJSON(const json::Value &Settings,
               ClangdConfigurationParamsChange &CCPC) {
-  json::ObjectMapper O(Params);
-  return O && O.map("compilationDatabasePath", CCPC.compilationDatabasePath) &&
-         O.map("compilationDatabaseChanges", CCPC.compilationDatabaseChanges);
+  json::ObjectMapper O(Settings);
+  const json::Value *P = Settings.getAsObject()->get("compilationDatabasePath");
+
+  if (P) {
+    // The field is present.
+    CCPC.compilationDatabasePath.emplace();
+    llvm::Optional<StringRef> S = P->getAsString();
+    if (S) {
+      // The field has a string value.
+      CCPC.compilationDatabasePath->emplace(*S);
+    }
+  }
+
+  return O && O.map("compilationDatabaseChanges", CCPC.compilationDatabaseChanges);
 }
 
 bool fromJSON(const json::Value &Params, ReferenceParams &R) {

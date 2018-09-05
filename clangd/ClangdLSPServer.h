@@ -126,9 +126,10 @@ private:
     void setExtraFlagsForFile(PathRef File,
                               std::vector<std::string> ExtraFlags);
 
-    /// Set the compile commands directory to \p P.
+    /// Set the compile commands directory to \p P.  An empty Optional value
+    /// means to not use an explicit compile commands directory path.
     /// Only valid for directory-based CDB, no-op and error log on InMemoryCDB;
-    void setCompileCommandsDir(Path P);
+    void setCompileCommandsDir(llvm::Optional<Path> P);
 
     /// Returns a CDB that should be used to get compile commands for the
     /// current instance of ClangdLSPServer.

@@ -63,7 +63,7 @@ public:
   tooling::CompileCommand getFallbackCommand(PathRef File) const override;
 
   /// Set the compile commands directory to \p P.
-  void setCompileCommandsDir(Path P);
+  void setCompileCommandsDir(llvm::Optional<Path> P);
 
   /// Sets the extra flags that should be added to a file.
   void setExtraFlagsForFile(PathRef File, std::vector<std::string> ExtraFlags);

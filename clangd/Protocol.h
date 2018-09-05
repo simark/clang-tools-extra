@@ -358,7 +358,14 @@ bool fromJSON(const llvm::json::Value &, ClangdCompileCommand &);
 /// "initialize" request and for the "workspace/didChangeConfiguration"
 /// notification since the data received is described as 'any' type in LSP.
 struct ClangdConfigurationParamsChange {
-  llvm::Optional<std::string> compilationDatabasePath;
+  /// Path to the directory containing the compile_commands.json file to use.
+  /// The outer Optional is empty if the compilationDatabasePath field was not
+  /// present at all in the request.
+  /// The inner Optional is empty if the compilationDatabasePath field was
+  /// preset, but the value was null.
+  /// If the value of the compilationDatabasePath in the request is a string,
+  /// both Optionals are instantiated.
+  llvm::Optional<llvm::Optional<std::string>> compilationDatabasePath;
 
   // The changes that happened to the compilation database.
   // The key of the map is a file name.

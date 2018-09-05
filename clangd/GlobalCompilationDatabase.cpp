@@ -60,7 +60,7 @@ DirectoryBasedGlobalCompilationDatabase::getFallbackCommand(
   return C;
 }
 
-void DirectoryBasedGlobalCompilationDatabase::setCompileCommandsDir(Path P) {
+void DirectoryBasedGlobalCompilationDatabase::setCompileCommandsDir(llvm::Optional<Path> P) {
   std::lock_guard<std::mutex> Lock(Mutex);
   CompileCommandsDir = P;
   CompilationDatabases.clear();

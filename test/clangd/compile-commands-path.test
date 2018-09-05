@@ -39,4 +39,11 @@
 # CHECK-NEXT:       {
 # CHECK-NEXT:         "message": "MACRO is two",
 ---
+{"jsonrpc":"2.0","id":0,"method":"workspace/didChangeConfiguration","params":{"settings":{"compilationDatabasePath":null}}}
+# CHECK:   "method": "textDocument/publishDiagnostics",
+# CHECK-NEXT:   "params": {
+# CHECK-NEXT:     "diagnostics": [
+# CHECK-NEXT:       {
+# CHECK-NEXT:         "message": "MACRO is not defined",
+---
 {"jsonrpc":"2.0","id":10000,"method":"shutdown"}

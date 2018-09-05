@@ -613,14 +613,14 @@ void ClangdLSPServer::CompilationDB::setExtraFlagsForFile(
   CachingCDB->invalidate(File);
 }
 
-void ClangdLSPServer::CompilationDB::setCompileCommandsDir(Path P) {
+void ClangdLSPServer::CompilationDB::setCompileCommandsDir(llvm::Optional<Path> P) {
   if (!IsDirectoryBased) {
     elog("Trying to set compile commands dir while using in-memory compilation "
          "database");
     return;
   }
   static_cast<DirectoryBasedGlobalCompilationDatabase *>(CDB.get())
-      ->setCompileCommandsDir(P);
+      ->setCompileCommandsDir(std::move (P));
   CachingCDB->clear();
 }
 
